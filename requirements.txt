@@ -4,3 +4,5 @@ jsonpath-ng==1.6.0
 lxml==4.9.3
 fastapi==0.104.1
 uvicorn==0.24.0.post1
+pytest==7.4.3
+flake8==6.1.0

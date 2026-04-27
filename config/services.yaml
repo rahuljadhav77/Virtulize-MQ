@@ -1,0 +1,38 @@
+services:
+  - name: "Customer Service Virtual"
+    input_queue: "CUSTOMER.REQ"
+    output_queue: "CUSTOMER.RES"
+    active: true
+    rules:
+      - name: "Get Customer Balance"
+        match:
+          - field: "body"
+            type: "regex"
+            value: "GET_BALANCE"
+        response:
+          body: '{"status": "SUCCESS", "balance": 5000, "currency": "USD"}'
+          headers:
+            Content-Type: "application/json"
+          delay_ms: 100
+      
+      - name: "Requires Approval"
+        match:
+          - field: "body"
+            type: "regex"
+            value: "orderAmount > 10000"
+        response:
+          body: '{"status": "REQUIRES_APPROVAL", "code": "AUTH_PENDING"}'
+          headers:
+            Content-Type: "application/json"
+          delay_ms: 50
+
+      - name: "Dynamic Account Info"
+        match:
+          - field: "body"
+            type: "jsonpath"
+            key: "$.action"
+            value: "FETCH_ACCOUNT"
+        response:
+          body: '{"status": "SUCCESS", "account_id": "{{ json.account_id }}", "owner": "Mock User"}'
+          headers:
+            Content-Type: "application/json"

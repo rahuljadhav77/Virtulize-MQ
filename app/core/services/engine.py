@@ -15,9 +15,9 @@ class BehaviorEngine:
         # Add custom filters/globals for templates
         self.env.globals.update({
             'now': lambda: int(time.time()),
-            'uuid': lambda: str(uuid.uuid4()),
-            'format_time': lambda t, fmt: time.strftime(fmt, time.localtime(t))
+            'uuid': lambda: str(uuid.uuid4())
         })
+        self.env.filters['format_time'] = lambda t, fmt: time.strftime(fmt, time.localtime(t))
 
     def generate_response(self, request_msg: Dict[str, Any], rule: VirtualRule, session_id: str = None) -> Dict[str, Any]:
         resp_def = rule.response

@@ -81,7 +81,7 @@ class AdvancedMatcher:
     def _get_value_from_msg(self, message: Dict[str, Any], condition: MatchCondition) -> Any:
         field_val = message.get(condition.field, "")
         
-        if condition.operator == MatchOperator.JSONPATH and condition.key:
+        if condition.key and str(condition.key).startswith('$'):
             try:
                 json_data = json.loads(field_val)
                 jsonpath_expr = parse(condition.key)

@@ -1,0 +1,43 @@
+{
+  "service_name": "OrderServiceProduction",
+  "service_type": "ibm_mq",
+  "input_queue": "ORDER.REQ",
+  "output_queue": "ORDER.RES",
+  "stateful": true,
+  "rules": [
+    {
+      "name": "High Value Order",
+      "priority": 1,
+      "conditions": [
+        {
+          "field": "body",
+          "operator": "gt",
+          "key": "$.order.amount",
+          "value": 10000
+        }
+      ],
+      "response": {
+        "template": "{\"status\": \"REQUIRES_APPROVAL\", \"order_id\": \"{{ json.order.id }}\", \"processed_at\": \"{{ now() | format_time('%Y-%m-%d %H:%M:%S') }}\"}",
+        "delay_ms": 1500,
+        "state_updates": {
+          "last_high_value_order": "{{ json.order.id }}"
+        }
+      }
+    },
+    {
+      "name": "Standard Order",
+      "priority": 10,
+      "conditions": [
+        {
+          "field": "body",
+          "operator": "contains",
+          "value": "order"
+        }
+      ],
+      "response": {
+        "template": "{\"status\": \"CONFIRMED\", \"order_id\": \"{{ json.order.id }}\"}",
+        "delay_ms": 100
+      }
+    }
+  ]
+}

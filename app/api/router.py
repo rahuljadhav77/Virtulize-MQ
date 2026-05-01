@@ -3,11 +3,16 @@ from typing import List, Dict
 from app.core.domain.models import VirtualServiceConfig, InteractionLog
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.infrastructure.persistence.repository import ServiceRepository
 
 router = APIRouter()
 
-# In-memory storage for current session
-services_store: Dict[str, VirtualServiceConfig] = {}
+# Dependency for DB Session
+async def get_db_session():
+    from app.main import async_session
+    async with async_session() as session:
+        yield session
 
 @router.get("/logs")
 async def get_logs(limit: int = 50):
@@ -18,73 +23,53 @@ async def get_logs(limit: int = 50):
 def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-@router.get("/services", response_model=List[VirtualServiceConfig])
-async def list_services():
-    return list(services_store.values())
+@router.get("/services")
+async def get_services(db: AsyncSession = Depends(get_db_session)):
+    repo = ServiceRepository(db)
+    return await repo.get_all_services()
 
 @router.post("/services")
-async def create_service(config_data: dict):
-    # Flexible Parser: Handle simplified JSON format provided by users
+async def create_service(config_data: dict, db: AsyncSession = Depends(get_db_session)):
+    # Flexible Parser logic (kept for ease of use)
     if "rules" in config_data:
-        for i, rule in enumerate(config_data["rules"]):
-            # Map rule_name -> name
-            if "rule_name" in rule and "name" not in rule:
-                rule["name"] = rule.pop("rule_name")
-            
-            # Map condition (string) -> conditions (list)
-            if "condition" in rule and "conditions" not in rule:
-                cond_str = rule.pop("condition")
-                # Basic parser for simple "field == 'value'" or "field > value"
-                if "==" in cond_str:
-                    parts = cond_str.split("==")
-                    field_name = parts[0].strip()
-                    value = parts[1].strip().strip("'").strip('"')
-                    rule["conditions"] = [{
-                        "field": "body", 
-                        "operator": "equals", 
-                        "key": f"$.{field_name}", 
-                        "value": value
-                    }]
-                elif ">" in cond_str:
-                    parts = cond_str.split(">")
-                    field_name = parts[0].strip()
-                    value = float(parts[1].strip())
-                    rule["conditions"] = [{
-                        "field": "body", 
-                        "operator": "gt", 
-                        "key": f"$.{field_name}", 
-                        "value": value
-                    }]
+        for rule in config_data["rules"]:
+            if "rule_name" in rule: rule["name"] = rule.pop("rule_name")
+            if "condition" in rule:
+                cond = rule.pop("condition")
+                if "==" in cond:
+                    p = cond.split("==")
+                    rule["conditions"] = [{"field": "body", "operator": "equals", "key": f"$.{p[0].strip()}", "value": p[1].strip().strip("'")}]
                 else:
-                    rule["conditions"] = [{"field": "body", "operator": "contains", "value": cond_str}]
+                    rule["conditions"] = [{"field": "body", "operator": "contains", "value": cond}]
+            if "action" in rule:
+                rule["response"] = {"template": rule.pop("action").replace("respond_with:", "").strip().strip("'")}
 
-            # Map action (string) -> response (object)
-            if "action" in rule and "response" not in rule:
-                action_str = rule.pop("action")
-                template = action_str.replace("respond_with:", "").strip().strip("'").strip('"')
-                rule["response"] = {"template": template}
-
-    # Validate with Pydantic after conversion
     try:
         config = VirtualServiceConfig(**config_data)
-        services_store[config.service_name] = config
+        repo = ServiceRepository(db)
+        await repo.save_service(config)
+        
+        # Start in runtime
         from app.main import runtime
         runtime.run_service(config)
+        
         return {"status": "created", "service": config.service_name}
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))
 
 @router.get("/services/{name}")
-async def get_service(name: str):
-    if name not in services_store:
+async def get_service(name: str, db: AsyncSession = Depends(get_db_session)):
+    repo = ServiceRepository(db)
+    service = await repo.get_service_by_name(name)
+    if not service:
         raise HTTPException(status_code=404, detail="Service not found")
-    return services_store[name]
+    return service
 
 @router.delete("/services/{name}")
-async def delete_service(name: str):
-    if name in services_store:
-        del services_store[name]
-        return {"status": "deleted"}
+async def delete_service(name: str, db: AsyncSession = Depends(get_db_session)):
+    repo = ServiceRepository(db)
+    await repo.delete_service(name)
+    return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Service not found")
 
 @router.post("/test/inject")

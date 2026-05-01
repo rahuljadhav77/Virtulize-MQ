@@ -2,7 +2,6 @@ import re
 import json
 import logging
 from typing import List, Optional, Any, Dict
-from jsonpath_ng import parse
 from lxml import etree
 from app.core.domain.models import VirtualRule, MatchCondition, MatchOperator, LogicalOperator
 
@@ -71,11 +70,22 @@ class AdvancedMatcher:
             elif op == MatchOperator.JSONPATH:
                 return str(target_value) == str(expected)
             elif op == MatchOperator.XPATH:
-                return True # Simplified for now
+                return self._evaluate_xpath(str(target_value), condition)
                 
             return False
         except Exception as e:
             logger.error(f"Error evaluating condition: {e}")
+            return False
+
+    def _evaluate_xpath(self, xml_str: str, condition: MatchCondition) -> bool:
+        try:
+            tree = etree.fromstring(xml_str.encode('utf-8'))
+            results = tree.xpath(condition.key)
+            if not results:
+                return False
+            # Check if any result matches the value
+            return any(str(r.text).strip() == str(condition.value).strip() if hasattr(r, 'text') else str(r) == str(condition.value) for r in results)
+        except Exception:
             return False
 
     def _get_value_from_msg(self, message: Dict[str, Any], condition: MatchCondition) -> Any:

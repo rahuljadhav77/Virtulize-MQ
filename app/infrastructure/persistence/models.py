@@ -1,46 +1,32 @@
-from sqlalchemy import Column, Integer, String, Boolean, JSON, Float, DateTime, ForeignKey
+from sqlalchemy import Column, String, Boolean, JSON, Integer, ForeignKey, Float, DateTime
 from sqlalchemy.orm import relationship, declarative_base
-from datetime import datetime
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
-class ServiceDB(Base):
+class ServiceEntity(Base):
     __tablename__ = "virtual_services"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
-    service_type = Column(String) # ibm_mq, kafka, etc.
-    input_queue = Column(String)
-    output_queue = Column(String)
-    active = Column(Boolean, default=True)
-    stateful = Column(Boolean, default=False)
-    recording_enabled = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)
+    type = Column(String(50), default="ibm_mq")
+    input_queue = Column(String(255), nullable=False)
+    output_queue = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_stateful = Column(Boolean, default=False)
+    config_json = Column(JSON, nullable=False) # Store full Pydantic config
     
-    rules = relationship("RuleDB", back_populates="service", cascade="all, delete-orphan")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
 
-class RuleDB(Base):
-    __tablename__ = "service_rules"
-
-    id = Column(Integer, primary_key=True, index=True)
-    service_id = Column(Integer, ForeignKey("virtual_services.id"))
-    name = Column(String)
-    priority = Column(Integer, default=100)
-    match_conditions = Column(JSON) # Serialized list of conditions
-    response_definition = Column(JSON) # Serialized response template
-    state_required = Column(JSON)
-    
-    service = relationship("ServiceDB", back_populates="rules")
-
-class InteractionLogDB(Base):
+class InteractionLogEntity(Base):
     __tablename__ = "interaction_logs"
 
-    id = Column(String, primary_key=True)
-    timestamp = Column(Float)
-    service_name = Column(String, index=True)
-    request_body = Column(String)
-    request_headers = Column(JSON)
-    correlation_id = Column(String, index=True)
-    matched_rule = Column(String)
-    response_body = Column(String)
+    id = Column(Integer, primary_key=True)
+    service_name = Column(String(255), nullable=False)
+    request_body = Column(JSON)
+    response_body = Column(JSON)
+    rule_name = Column(String(255))
+    correlation_id = Column(String(255))
     latency_ms = Column(Float)
+    timestamp = Column(DateTime, server_default=func.now())

@@ -3,6 +3,7 @@ import json
 import logging
 from typing import List, Optional, Any, Dict
 from lxml import etree
+from jsonpath_ng import parse
 from app.core.domain.models import VirtualRule, MatchCondition, MatchOperator, LogicalOperator
 
 logger = logging.getLogger(__name__)

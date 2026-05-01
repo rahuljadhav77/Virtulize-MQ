@@ -221,12 +221,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function aiGenerateConfig() {
+        const promptInput = document.getElementById('ai-prompt');
+        const btnAi = document.getElementById('btn-ai-generate');
+        const prompt = promptInput.value;
+
+        if (!prompt) return;
+
+        try {
+            btnAi.disabled = true;
+            btnAi.textContent = 'Thinking...';
+            
+            const res = await fetch(`${API_BASE}/ai/generate-config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+
+            if (!res.ok) throw new Error('AI generation failed');
+
+            const config = await res.json();
+            configInput.value = JSON.stringify(config, null, 2);
+            showToast('AI generated a new configuration!');
+        } catch (error) {
+            showToast('AI Error: ' + error.message, 'error');
+        } finally {
+            btnAi.disabled = false;
+            btnAi.textContent = 'Generate';
+        }
+    }
+
     // --- Event Listeners ---
     btnRefresh.addEventListener('click', fetchServices);
     btnCreateModal.addEventListener('click', openModal);
     btnCloseModal.addEventListener('click', closeModal);
     btnCancel.addEventListener('click', closeModal);
     btnDeploy.addEventListener('click', deployService);
+    document.getElementById('btn-ai-generate').addEventListener('click', aiGenerateConfig);
 
     document.getElementById('btn-close-test-modal').addEventListener('click', closeTestModal);
     document.getElementById('btn-test-cancel').addEventListener('click', closeTestModal);

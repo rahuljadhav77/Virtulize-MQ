@@ -87,8 +87,24 @@
                 <button id="btn-close-modal" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
-                <p class="helper-text">Paste your JSON configuration to deploy a new virtual MQ listener. Ensure it matches the ProductionConfig schema.</p>
-                <div class="editor-container">
+                <p class="helper-text">Paste your JSON configuration or use the AI Copilot to generate it.</p>
+                
+                <!-- AI Copilot Section -->
+                <div class="form-group" style="margin-bottom: 2rem; border: 1px solid rgba(0, 242, 255, 0.2); padding: 1.5rem; border-radius: 12px; background: rgba(0, 242, 255, 0.05); box-shadow: 0 0 20px rgba(0, 242, 255, 0.05);">
+                    <label style="color: var(--accent); display: flex; align-items: center; gap: 0.5rem; font-weight: 800; text-transform: uppercase; font-size: 0.75rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        <span>AI Simulation Copilot</span>
+                    </label>
+                    <p class="helper-text" style="margin-bottom: 1rem; opacity: 0.8;">Describe the MQ service behavior in natural language.</p>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="ai-prompt" class="glass-input" placeholder="e.g. A banking service that rejects amounts < 100...">
+                        <button id="btn-ai-generate" class="primary-btn" style="background: linear-gradient(135deg, #00f2ff, #7000ff); border: none; min-width: 120px; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);">Generate</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Configuration (JSON)</label>
+                    <div class="editor-container">
                     <textarea id="config-input" class="code-editor" spellcheck="false">{
   "service_name": "OrderService",
   "service_type": "ibm_mq",

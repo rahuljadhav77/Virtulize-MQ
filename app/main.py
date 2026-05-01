@@ -60,6 +60,9 @@ async def root():
 async def startup_event():
     logger.info("Initializing Enterprise Virtulize MQ Runtime...")
     
+    # Connect transport
+    transport.connect()
+    
     # Create tables if using sqlite (for enterprise we use Alembic)
     async with engine_db.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

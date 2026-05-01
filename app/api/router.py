@@ -72,6 +72,16 @@ async def delete_service(name: str, db: AsyncSession = Depends(get_db_session)):
     return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Service not found")
 
+@router.post("/ai/generate-config")
+async def ai_generate_config(request: dict):
+    from app.core.services.ai_service import AIService
+    prompt = request.get("prompt", "")
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+    
+    config = await AIService.generate_config(prompt)
+    return config
+
 @router.post("/test/inject")
 async def inject_test_message(queue_name: str, body: str, correlation_id: str = "test-correl"):
     from app.main import transport

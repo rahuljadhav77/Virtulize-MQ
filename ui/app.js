@@ -222,15 +222,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function aiGenerateConfig() {
+        console.log("AI Generation triggered...");
         const promptInput = document.getElementById('ai-prompt');
         const btnAi = document.getElementById('btn-ai-generate');
         const prompt = promptInput.value;
 
-        if (!prompt) return;
+        console.log("Prompt:", prompt);
+        if (!prompt) {
+            showToast('Please enter a prompt first', true);
+            return;
+        }
 
         try {
+            console.log("Calling AI API...");
             btnAi.disabled = true;
             btnAi.textContent = 'Thinking...';
+            
+            // Clear current editor to show progress
+            configInput.value = '// AI Copilot is drafting your service...';
             
             const res = await fetch(`${API_BASE}/ai/generate-config`, {
                 method: 'POST',

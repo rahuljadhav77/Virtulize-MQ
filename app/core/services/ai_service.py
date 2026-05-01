@@ -39,19 +39,27 @@ class AIService:
                 "action": "respond_with: '{\"status\": \"REJECTED\", \"reason\": \"LOW_BALANCE\"}'"
             })
         
-        if "ping" in prompt_lower:
+        if "ping" in prompt_lower or "health" in prompt_lower:
             config["rules"].append({
                 "rule_name": "HealthCheck",
                 "condition": "message_type == 'PING'",
                 "action": "respond_with: 'PONG'"
             })
 
-        if not config["rules"]:
-            # Generic fallback
+        if "approval" in prompt_lower or "limit" in prompt_lower:
             config["rules"].append({
-                "rule_name": "GenericResponse",
+                "rule_name": "HighValueApproval",
+                "condition": "amount > 5000",
+                "action": "respond_with: '{\"status\": \"PENDING_APPROVAL\", \"notice\": \"Amount exceeds auto-limit\"}'"
+            })
+
+        if not config["rules"]:
+            # Context-aware fallback
+            topic = prompt.split()[-1].capitalize() if prompt.split() else "Generic"
+            config["rules"].append({
+                "rule_name": f"{topic}Handler",
                 "condition": "True",
-                "action": f"respond_with: 'AI generated response for: {prompt}'"
+                "action": f"respond_with: 'Generated response for {prompt}'"
             })
 
         return config

@@ -18,16 +18,28 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
+# Global buffer for UI real-time updates
+RECENT_LOGS = []
+
 class ObservabilityService:
     @staticmethod
     def log_interaction(service_name: str, request: dict, response: dict, rule_name: str, latency: float):
+        log_entry = {
+            "timestamp": time.time(),
+            "service": service_name,
+            "rule": rule_name or "NO_MATCH",
+            "latency_ms": round(latency * 1000, 2),
+            "correlation_id": request.get('correlation_id'),
+            "request_preview": str(request.get('body', ''))[:100],
+            "response_preview": str(response.get('body', ''))[:100]
+        }
+        
+        RECENT_LOGS.append(log_entry)
+        if len(RECENT_LOGS) > 100: RECENT_LOGS.pop(0)
+
         logger.info(
             "mq_interaction",
-            service=service_name,
-            rule=rule_name,
-            latency_ms=latency * 1000,
-            correlation_id=request.get('correlation_id'),
-            status="success" if rule_name else "no_match"
+            **log_entry
         )
         
         status = "success" if rule_name else "no_match"

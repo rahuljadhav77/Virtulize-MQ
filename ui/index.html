@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtulize MQ Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-animation"></div>
+    
+    <header class="glass-header">
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 7V12L15.5 15.5" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h1>Virtulize <span>MQ</span></h1>
+        </div>
+        <button id="btn-create-modal" class="primary-btn">+ New Service</button>
+    </header>
+
+    <main class="container">
+        <section class="dashboard-stats">
+            <div class="stat-card glass-panel">
+                <h3>Active Services</h3>
+                <div class="stat-value" id="stat-active">0</div>
+            </div>
+            <div class="stat-card glass-panel">
+                <h3>Total Rules</h3>
+                <div class="stat-value" id="stat-rules">0</div>
+            </div>
+            <div class="stat-card glass-panel">
+                <h3>System Status</h3>
+                <div class="stat-value status-online">Online</div>
+            </div>
+        </section>
+
+        <section class="services-section">
+            <div class="section-header">
+                <h2>Deployed MQ Virtualizations</h2>
+                <button id="btn-refresh" class="icon-btn" title="Refresh">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.26l5.08 5.08"/></svg>
+                </button>
+            </div>
+            
+            <div id="services-grid" class="services-grid">
+                <!-- Service Cards will be injected here via JS -->
+            </div>
+        </section>
+        <section class="logs-section">
+            <div class="section-header">
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <h2>Live Traffic Feed</h2>
+                    <select id="log-filter" class="glass-input" style="width: auto; padding: 0.3rem 1rem; font-size: 0.8rem;">
+                        <option value="all">All Services</option>
+                    </select>
+                </div>
+                <div class="live-indicator">● LIVE</div>
+            </div>
+            <div class="glass-panel logs-container">
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Service</th>
+                            <th>Rule</th>
+                            <th>Latency</th>
+                            <th>Request Preview</th>
+                            <th>Response</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-body">
+                        <!-- Logs will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Create Service Modal -->
+    <div id="create-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Create Virtual MQ Service</h2>
+                <button id="btn-close-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="helper-text">Paste your JSON configuration to deploy a new virtual MQ listener. Ensure it matches the ProductionConfig schema.</p>
+                <div class="editor-container">
+                    <textarea id="config-input" class="code-editor" spellcheck="false">{
+  "service_name": "OrderService",
+  "service_type": "ibm_mq",
+  "input_queue": "ORDER.REQ",
+  "output_queue": "ORDER.RES",
+  "rules": [
+    {
+      "name": "Default Match",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "body",
+          "operator": "contains",
+          "value": "order"
+        }
+      ],
+      "response": {
+        "template": "{\"status\": \"RECEIVED\"}",
+        "delay_ms": 0
+      }
+    }
+  ]
+}</textarea>
+                </div>
+                <div id="modal-error" class="error-msg hidden"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel" class="secondary-btn">Cancel</button>
+                <button id="btn-deploy" class="primary-btn">Deploy Service</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Service Modal -->
+    <div id="test-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Test Virtual Service: <span id="test-svc-name"></span></h2>
+                <button id="btn-close-test-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="helper-text">Inject a manual MQ message into the input queue to test your match rules.</p>
+                
+                <div class="form-group">
+                    <label>Correlation ID</label>
+                    <input type="text" id="test-corr-id" class="glass-input" placeholder="TEST-REQ-001">
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Message Body (JSON/Text)</label>
+                    <div class="editor-container" style="height: 150px;">
+                        <textarea id="test-body-input" class="code-editor" style="height: 100%;" placeholder='{"message_type": "PING"}'></textarea>
+                    </div>
+                </div>
+
+                <div id="test-modal-error" class="error-msg hidden"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-test-cancel" class="secondary-btn">Cancel</button>
+                <button id="btn-send-test" class="primary-btn">Send Message</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

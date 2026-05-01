@@ -1,13 +1,13 @@
 import pytest
-from app.core.matcher import MessageMatcher
-from app.models.service import Rule, MatchCondition, ResponseTemplate
+from app.core.services.matcher import AdvancedMatcher
+from app.core.domain.models import VirtualRule, MatchCondition, ResponseDefinition, MatchOperator
 
 def test_matcher_regex():
-    matcher = MessageMatcher()
-    rule = Rule(
+    matcher = AdvancedMatcher()
+    rule = VirtualRule(
         name="Test Regex",
-        match=[MatchCondition(field="body", type="regex", value="HELLO.*")],
-        response=ResponseTemplate(body="WORLD")
+        conditions=[MatchCondition(field="body", operator=MatchOperator.REGEX, value="HELLO.*")],
+        response=ResponseDefinition(template="WORLD")
     )
     
     msg = {"body": "HELLO THERE"}
@@ -17,11 +17,11 @@ def test_matcher_regex():
     assert matcher.match(msg_no_match, [rule]) is None
 
 def test_matcher_jsonpath():
-    matcher = MessageMatcher()
-    rule = Rule(
+    matcher = AdvancedMatcher()
+    rule = VirtualRule(
         name="Test JSONPath",
-        match=[MatchCondition(field="body", type="jsonpath", key="$.user.id", value="123")],
-        response=ResponseTemplate(body="FOUND")
+        conditions=[MatchCondition(field="body", operator=MatchOperator.JSONPATH, key="$.user.id", value="123")],
+        response=ResponseDefinition(template="FOUND")
     )
     
     msg = {"body": '{"user": {"id": "123"}}'}
